@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+// NOTE: See `https://leanrada.com/notes/dynamic-patrol-stealth-games/`.
+
 typedef uint8_t  u8;
 typedef uint32_t u32;
 typedef int32_t  i32;
@@ -13,7 +15,7 @@ typedef struct {
     u32 x, y;
 } Vector2u;
 
-#define FPS_X 10.0f
+#define FPS_X 10
 #define FPS_Y FPS_X
 
 #define BACKGROUND ((Color){0x20, 0x20, 0x20, 0xFF})
@@ -27,11 +29,9 @@ typedef struct {
 #define GRID_X (SCREEN_X / ROWS)
 #define GRID_Y (SCREEN_Y / COLS)
 
-#define MAX_WEIGHT 100.0f
-
 #define FRAME_SPEED 5
 
-static f32 WEIGHTS[ROWS][COLS] = {0};
+static u8 WEIGHTS[ROWS][COLS] = {0};
 
 #define WALL '#'
 
@@ -59,12 +59,11 @@ static Vector2u update(const Vector2u position) {
                 continue;
             }
 
-            WEIGHTS[i][j] += 1.0f;
-            WEIGHTS[i][j] = MAX_WEIGHT < WEIGHTS[i][j] ? MAX_WEIGHT : WEIGHTS[i][j];
+            WEIGHTS[i][j] = 0xFF == WEIGHTS[i][j] ? 0xFF : WEIGHTS[i][j] + 1;
         }
     }
 
-    WEIGHTS[position.y][position.x] = 0.0f;
+    WEIGHTS[position.y][position.x] = 0;
 
     Vector2u start = position;
     Vector2u end = (Vector2u){position.x + 1, position.y + 1};
@@ -86,7 +85,7 @@ static Vector2u update(const Vector2u position) {
     }
 
     Vector2u next_position = position;
-    f32      watermark = 0.0f;
+    u8       watermark = 0;
 
     for (u32 i = start.y; i < end.y; ++i) {
         if (watermark < WEIGHTS[i][position.x]) {
@@ -112,14 +111,12 @@ static void draw(const Vector2u from, const Vector2u to, const f32 t) {
                 continue;
             }
 
-            DrawRectangleV((Vector2){GRID_X * (f32)j, GRID_Y * (f32)i},
-                           (Vector2){GRID_X, GRID_Y},
-                           RAYWHITE);
-
-            DrawRectangleV(
-                (Vector2){GRID_X * (f32)j, GRID_Y * (f32)i},
-                (Vector2){GRID_X, GRID_Y},
-                (Color){BLUE.r, BLUE.g, BLUE.b, (u8)((f32)0xFF * (WEIGHTS[i][j] / MAX_WEIGHT))});
+            DrawRectangle(GRID_X * (i32)j, GRID_Y * (i32)i, GRID_X, GRID_Y, RAYWHITE);
+            DrawRectangle(GRID_X * (i32)j,
+                          GRID_Y * (i32)i,
+                          GRID_X,
+                          GRID_Y,
+                          (Color){BLUE.r, BLUE.g, BLUE.b, WEIGHTS[i][j]});
         }
     }
 
@@ -141,7 +138,7 @@ i32 main(void) {
                 continue;
             }
 
-            WEIGHTS[i][j] = MAX_WEIGHT;
+            WEIGHTS[i][j] = 0xFF;
         }
     }
 
